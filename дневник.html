@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои работы</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #e0c3fc, #8ec5fc);
+      color: #333;
+    }
+
+    header {
+      text-align: center;
+      padding: 30px;
+      font-size: 40px;
+      font-weight: 800;
+      font-family: 'Georgia', serif;
+      color: white;
+      text-shadow: 2px 2px 8px #000;
+    }
+
+    .today-box {
+      max-width: 600px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      font-family: 'Verdana', sans-serif;
+    }
+
+    .today-box h2 {
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 16px;
+    }
+
+    .task input[type="checkbox"] {
+      transform: scale(1.2);
+    }
+
+    .task span {
+      flex: 1;
+      padding: 4px 8px;
+    }
+
+    .task button {
+      background: crimson;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .add-task {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .add-task input {
+      flex: 1 1 200px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+
+    .add-task button {
+      padding: 10px 20px;
+      border: none;
+      background: #4b6cb7;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .week-section {
+      margin: 50px auto 30px;
+      max-width: 900px;
+      background: white;
+      padding: 30px;
+      border-radius: 25px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+      font-family: 'Tahoma', sans-serif;
+    }
+
+    .week-section h3 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 26px;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+
+    @media (min-width: 600px) {
+      .week-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 900px) {
+      .week-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .week-entry {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .week-entry label {
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .week-grid textarea {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 12px;
+      border: 1px solid #bbb;
+      resize: vertical;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: white;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<header>Мои Работы</header>
+
+<div class="today-box">
+  <h2>Сегодня</h2>
+  <div id="today-tasks"></div>
+  <div class="add-task">
+    <input type="text" id="new-task" placeholder="Добавить задание...">
+    <button onclick="addTodayTask()">Добавить</button>
+  </div>
+</div>
+
+<div class="week-section">
+  <h3>Работы по дням недели</h3>
+  <div class="week-grid" id="week-grid"></div>
+</div>
+
+<footer>© 2025 • Сделано для Сохибжона</footer>
+
+<script>
+  const dayIdMap = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const dayNames = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+  const todayDate = new Date();
+  const todayId = ['sun','mon','tue','wed','thu','fri','sat'][todayDate.getDay()];
+  const todayTasksContainer = document.getElementById("today-tasks");
+  const textareas = {};
+
+  function loadTodayTasks() {
+    const saved = JSON.parse(localStorage.getItem("today-tasks")) || [];
+    saved.forEach(task => createTodayTask(task.text, task.done));
+  }
+
+  function createTodayTask(text, done) {
+    const div = document.createElement("div");
+    div.className = "task";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = done;
+    checkbox.onchange = saveTodayTasks;
+
+    const span = document.createElement("span");
+    span.textContent = text;
+    span.contentEditable = true;
+    span.oninput = saveTodayTasks;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Удалить";
+    deleteBtn.onclick = () => {
+      div.remove();
+      saveTodayTasks();
+      removeFromWeeklyNotes(todayId, text);
+    };
+
+    div.appendChild(checkbox);
+    div.appendChild(span);
+    div.appendChild(deleteBtn);
+    todayTasksContainer.appendChild(div);
+  }
+
+  function addTodayTask() {
+    const input = document.getElementById("new-task");
+    const text = input.value.trim();
+    if (text !== "") {
+      createTodayTask(text, false);
+      input.value = "";
+      saveTodayTasks();
+      addToWeeklyNotes(todayId, text);
+    }
+  }
+
+  function saveTodayTasks() {
+    const tasks = [];
+    document.querySelectorAll("#today-tasks .task").forEach(task => {
+      const text = task.querySelector("span").textContent;
+      const done = task.querySelector("input").checked;
+      tasks.push({ text, done });
+    });
+    localStorage.setItem("today-tasks", JSON.stringify(tasks));
+  }
+
+  function addToWeeklyNotes(dayId, newText) {
+    const textarea = textareas[dayId];
+    if (textarea) {
+      textarea.value += (textarea.value ? '\n' : '') + newText;
+      localStorage.setItem(`note-${dayId}`, textarea.value);
+    }
+  }
+
+  function removeFromWeeklyNotes(dayId, textToRemove) {
+    const textarea = textareas[dayId];
+    if (textarea) {
+      const lines = textarea.value.split('\n');
+      const updated = lines.filter(line => line.trim() !== textToRemove.trim());
+      textarea.value = updated.join('\n');
+      localStorage.setItem(`note-${dayId}`, textarea.value);
+    }
+  }
+
+  const weekGrid = document.getElementById("week-grid");
+
+  dayIdMap.forEach((id, index) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "week-entry";
+
+    const label = document.createElement("label");
+    const now = new Date();
+    const monday = new Date(now);
+    const day = now.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    monday.setDate(now.getDate() + diff);
+
+    const currentDayDate = new Date(monday);
+    currentDayDate.setDate(monday.getDate() + index);
+    const dateStr = currentDayDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    label.textContent = `${dayNames[index]} — ${dateStr}`;
+
+    const textarea = document.createElement("textarea");
+    const saved = localStorage.getItem(`note-${id}`);
+    if (saved) textarea.value = saved;
+    textarea.oninput = () => {
+      localStorage.setItem(`note-${id}`, textarea.value);
+    };
+
+    textareas[id] = textarea;
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(textarea);
+    weekGrid.appendChild(wrapper);
+  });
+
+  loadTodayTasks();
+</script>
+
+</body>
+</html>
